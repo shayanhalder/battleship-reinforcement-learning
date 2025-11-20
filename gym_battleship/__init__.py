@@ -1,4 +1,4 @@
-from gym.envs.registration import register
+from gymnasium.envs.registration import register
 from gym_battleship.environments.battleship import BattleshipEnv
 from gym_battleship.environments.adversarial_battleship import AdversarialBattleshipEnv
 

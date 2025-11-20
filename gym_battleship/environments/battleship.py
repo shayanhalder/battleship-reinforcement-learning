@@ -102,13 +102,16 @@ class BattleshipEnv(gymnasium.Env):
                 return self.observation, self.reward_dictionary['win'], self.done, {}
             return self.observation, self.reward_dictionary['touched'], self.done, {}
 
-        # Repeat touched (observation[0, x, y] == 1)
-        elif self.observation[0, action.x, action.y] == 1:
-            return self.observation, self.reward_dictionary['repeat_touched'], self.done, {}
-
-        # Repeat missed (observation[1, x, y] == 1)
-        elif self.observation[1, action.x, action.y] == 1:
+        # didn't hit a ship
+        # first check if we chose a cell we already chose before
+        
+        # repeat cell marked as missed
+        elif self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] == 1:
             return self.observation, self.reward_dictionary['repeat_missed'], self.done, {}
+
+        # repeat cell marked as hit 
+        elif self.observation[CHANNEL_MAP.HIT.value, action.x, action.y] == 1:
+            return self.observation, self.reward_dictionary['repeat_touched'], self.done, {}
 
         # Missed (Action not repeated and boat(s) not touched)
         else:

@@ -123,7 +123,6 @@ class BattleshipEnv(gymnasium.Env):
     def reset(self, seed=None, options=None) -> np.ndarray:
         self._set_board()
         self.board_generated = deepcopy(self.board)
-        # self.observation = np.zeros((2, *self.board_size), dtype=np.float32)
         self.observation = np.zeros((self.NUM_CHANNELS, *self.board_size), dtype=np.float32)
         self.step_count = 0
         self.done = False
@@ -158,8 +157,8 @@ class BattleshipEnv(gymnasium.Env):
 
     def render(self, mode='human'):
         board = np.empty(self.board_size, dtype=str)
-        board[self.observation[0] != 0] = '⚫'
-        board[self.observation[1] != 0] = '❌'
+        board[self.observation[CHANNEL_MAP.MISSED.value] != 0] = '⚫'
+        board[self.observation[CHANNEL_MAP.HIT.value] != 0] = '❌'
         self._render(board)
 
     def render_board_generated(self):

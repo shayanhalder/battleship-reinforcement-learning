@@ -1,3 +1,6 @@
 gym
 setuptools
 numpy
+pytorch
+stable-baselines3
+

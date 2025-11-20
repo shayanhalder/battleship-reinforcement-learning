@@ -3,4 +3,5 @@
 *.iml
 *.pyc
 venv/
-
+__pycache__/
+.DS_Store

@@ -54,11 +54,12 @@ class BattleshipEnv(gymnasium.Env):
 
         reward_dictionary = {} if reward_dictionary is None else reward_dictionary
         default_reward_dictionary = reward_dictionary or {  # todo further tuning of the rewards required
-            'win': 100,
-            'missed': 0,
-            'touched': 1,
-            'repeat_missed': -1,
-            'repeat_touched': -0.5
+             'missed': -1.0,
+            'repeat_missed': -5.0,
+            'hit': 1.0,
+            'proximal_hit': 3.0,
+            'repeat_hit': -5.0,
+            'sunk_ship_bonus': 5.0
         }
         
         self.reward_dictionary = {key: reward_dictionary.get(key, default_reward_dictionary[key]) for key in default_reward_dictionary.keys()}

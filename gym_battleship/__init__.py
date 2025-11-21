@@ -5,7 +5,7 @@ from gym_battleship.environments.adversarial_battleship import AdversarialBattle
 
 register(
     id='Battleship-v0',
-    entry_point='gym_battleship:BattleshipEnv',
+    entry_point='gym_battleship.environments.battleship:BattleshipEnv',
 )
 register(
     id='AdversarialBattleship-v0',

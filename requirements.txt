@@ -1,6 +1,6 @@
-gym
+gymnasium
 setuptools
 numpy
-pytorch
+torch
 stable-baselines3
 

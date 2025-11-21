@@ -1,16 +1,20 @@
-import gymnasium as gym
+import gymnasium
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 from copy import deepcopy
 from typing import Union
 from typing import Tuple
 from typing import Optional
 from collections import namedtuple
-
+from enum import Enum
 
 Ship = namedtuple('Ship', ['min_x', 'max_x', 'min_y', 'max_y'])
 Action = namedtuple('Action', ['x', 'y'])
 
+class CHANNEL_MAP(Enum):
+    MISSED = 0
+    HIT = 1
+    LEGAL_MOVE = 2
 
 def is_notebook():
     """Helper used to change the way the environment in rendered"""
@@ -25,7 +29,7 @@ def is_notebook():
         return False  # Probably standard Python interpreter
 
 
-class BattleshipEnv(gym.Env):
+class BattleshipEnv(gymnasium.Env):
     def __init__(self,
                  board_size: Tuple = None,
                  ship_sizes: dict = None,
@@ -37,8 +41,13 @@ class BattleshipEnv(gym.Env):
 
         self.board = None  # Hidden state updated throughout the game
         self.board_generated = None  # Hidden state generated and left not updated (for debugging purposes)
-        self.observation = None  # the observation is a (2, n, m) matrix, the first channel is for the missile that was launched on a cell that contained a boat, the second channel is for the missile launched that was launch on a cell that was not containing any boat
-
+        self.observation = None  # the observation is a (3, n, m) matrix
+        self.NUM_CHANNELS = 3
+        # channels: 
+            # 0 - missed (0 = not missed, 1 = missed)
+            # 1 - hit (0 = not hit, 1 = hit)
+            # 2 - legal moves (0 = legal, 1 = illegal)
+        
         self.done = None
         self.step_count = None
         self.episode_steps = episode_steps
@@ -50,13 +59,17 @@ class BattleshipEnv(gym.Env):
             'touched': 1,
             'repeat_missed': -1,
             'repeat_touched': -0.5
-            }
+        }
+        
         self.reward_dictionary = {key: reward_dictionary.get(key, default_reward_dictionary[key]) for key in default_reward_dictionary.keys()}
-
         self.action_space = spaces.Discrete(self.board_size[0] * self.board_size[1])
-        self.observation_space = spaces.Box(low=0, high=1, shape=(2, self.board_size[0], self.board_size[1]))
-
-    def step(self, raw_action: Union[int, tuple]) -> Tuple[np.ndarray, int, bool, dict]:
+        self.observation_space = spaces.Box(low=0, high=1, shape=(self.NUM_CHANNELS, self.board_size[0], self.board_size[1]))
+            # three 10x10 matrices stacked together for the convolutional neural network
+    
+    def get_original_board(self) -> np.ndarray:
+        return self.board_generated  
+    
+    def step(self, raw_action: Union[int, tuple]) -> Tuple[np.ndarray, int, bool, dict]:        
         if isinstance(raw_action, int):
             assert (0 <= raw_action < self.board_size[0]*self.board_size[1]),\
                 "Invalid action (The encoded action is outside of the limits)"
@@ -77,35 +90,43 @@ class BattleshipEnv(gym.Env):
             self.done = True
 
         # Touched (board[x, y] == 1)
-        if self.board[action.x, action.y] == 1:
+        
+        if self.board[action.x, action.y] == 1: # hit ship
             self.board[action.x, action.y] = 0
-            self.observation[0, action.x, action.y] = 1
+            self.observation[CHANNEL_MAP.HIT.value, action.x, action.y] = 1
+            self.observation[CHANNEL_MAP.LEGAL_MOVE.value, action.x, action.y] = 1
+            
             # Win (No boat left)
             if not self.board.any():
                 self.done = True
                 return self.observation, self.reward_dictionary['win'], self.done, {}
             return self.observation, self.reward_dictionary['touched'], self.done, {}
 
-        # Repeat touched (observation[0, x, y] == 1)
-        elif self.observation[0, action.x, action.y] == 1:
-            return self.observation, self.reward_dictionary['repeat_touched'], self.done, {}
-
-        # Repeat missed (observation[1, x, y] == 1)
-        elif self.observation[1, action.x, action.y] == 1:
+        # didn't hit a ship
+        # first check if we chose a cell we already chose before
+        
+        # repeat cell marked as missed
+        elif self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] == 1:
             return self.observation, self.reward_dictionary['repeat_missed'], self.done, {}
+
+        # repeat cell marked as hit 
+        elif self.observation[CHANNEL_MAP.HIT.value, action.x, action.y] == 1:
+            return self.observation, self.reward_dictionary['repeat_touched'], self.done, {}
 
         # Missed (Action not repeated and boat(s) not touched)
         else:
-            self.observation[1, action.x, action.y] = 1
+            self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] = 1
+            self.observation[CHANNEL_MAP.LEGAL_MOVE.value, action.x, action.y] = 1
+            
             return self.observation, self.reward_dictionary['missed'], self.done, {}
 
-    def reset(self) -> np.ndarray:
+    def reset(self, seed=None, options=None) -> np.ndarray:
         self._set_board()
         self.board_generated = deepcopy(self.board)
-        self.observation = np.zeros((2, *self.board_size), dtype=np.float32)
+        self.observation = np.zeros((self.NUM_CHANNELS, *self.board_size), dtype=np.float32)
         self.step_count = 0
         self.done = False
-        return self.observation
+        return self.observation, {}
 
     def _set_board(self) -> None:
         self.board = np.zeros(self.board_size, dtype=np.float32)
@@ -136,8 +157,8 @@ class BattleshipEnv(gym.Env):
 
     def render(self, mode='human'):
         board = np.empty(self.board_size, dtype=str)
-        board[self.observation[0] != 0] = '❌'
-        board[self.observation[1] != 0] = '⚫'
+        board[self.observation[CHANNEL_MAP.MISSED.value] != 0] = '⚫'
+        board[self.observation[CHANNEL_MAP.HIT.value] != 0] = '❌'
         self._render(board)
 
     def render_board_generated(self):

@@ -56,10 +56,11 @@ class BattleshipEnv(gymnasium.Env):
         default_reward_dictionary = reward_dictionary or {  # todo further tuning of the rewards required
             'win': 10,
             'missed': -0.2,
-            'touched': 1,
-            'touched_adjacent': 2,
+            'hit': 1,
+            'proximal_hit': 3.0,
             'repeat_missed': -1,
-            'repeat_touched': -1
+            'repeat_touched': -1,
+            'sunk_ship_bonus': 5.0
         }
         
         self.reward_dictionary = {key: reward_dictionary.get(key, default_reward_dictionary[key]) for key in default_reward_dictionary.keys()}
@@ -117,9 +118,9 @@ class BattleshipEnv(gymnasium.Env):
                 self.done = True
                 return self.observation, self.reward_dictionary['win'], self.done, {}
             if self._check_proximal_hit(action):
-                return self.observation, self.reward_dictionary['touched_adjacent'], self.done, truncated, {}
+                return self.observation, self.reward_dictionary['proximal_hit'], self.done, truncated, {}
             
-            return self.observation, self.reward_dictionary['touched'], self.done, truncated, {}
+            return self.observation, self.reward_dictionary['hit'], self.done, truncated, {}
 
         # didn't hit a ship
         # first check if we chose a cell we already chose before

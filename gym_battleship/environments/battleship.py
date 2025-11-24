@@ -54,11 +54,12 @@ class BattleshipEnv(gymnasium.Env):
 
         reward_dictionary = {} if reward_dictionary is None else reward_dictionary
         default_reward_dictionary = reward_dictionary or {  # todo further tuning of the rewards required
-            'win': 100,
-            'missed': 0,
+            'win': 10,
+            'missed': -0.2,
             'touched': 1,
+            'touched_adjacent': 2,
             'repeat_missed': -1,
-            'repeat_touched': -0.5
+            'repeat_touched': -1
         }
         
         self.reward_dictionary = {key: reward_dictionary.get(key, default_reward_dictionary[key]) for key in default_reward_dictionary.keys()}
@@ -69,8 +70,22 @@ class BattleshipEnv(gymnasium.Env):
     def get_original_board(self) -> np.ndarray:
         return self.board_generated  
     
-    def step(self, raw_action: Union[int, tuple]) -> Tuple[np.ndarray, int, bool, dict]:        
-        if isinstance(raw_action, int):
+    def _in_horizontal_bounds(self, x: int) -> bool:
+        return 0 <= x < self.board_size[0]
+    
+    def _in_vertical_bounds(self, y: int) -> bool:
+        return 0 <= y < self.board_size[1]
+    
+    def _check_proximal_hit(self, action: tuple[int, int]) -> bool: 
+        return (
+            (self._in_horizontal_bounds(action.x - 1) and self.observation[CHANNEL_MAP.HIT.value, action.x - 1, action.y] == 1) or
+            (self._in_horizontal_bounds(action.x + 1) and self.observation[CHANNEL_MAP.HIT.value, action.x + 1, action.y] == 1) or
+            (self._in_vertical_bounds(action.y - 1) and self.observation[CHANNEL_MAP.HIT.value, action.x, action.y - 1] == 1) or
+            (self._in_vertical_bounds(action.y + 1) and self.observation[CHANNEL_MAP.HIT.value, action.x, action.y + 1] == 1)
+        )
+    
+    def step(self, raw_action: Union[int, tuple]) -> Tuple[np.ndarray, int, bool, dict]:
+        if isinstance(raw_action, int) or isinstance(raw_action, np.int64):
             assert (0 <= raw_action < self.board_size[0]*self.board_size[1]),\
                 "Invalid action (The encoded action is outside of the limits)"
             action = Action(x=raw_action % self.board_size[0], y=raw_action // self.board_size[0])
@@ -90,6 +105,7 @@ class BattleshipEnv(gymnasium.Env):
             self.done = True
 
         # Touched (board[x, y] == 1)
+        truncated = False
         
         if self.board[action.x, action.y] == 1: # hit ship
             self.board[action.x, action.y] = 0
@@ -100,25 +116,28 @@ class BattleshipEnv(gymnasium.Env):
             if not self.board.any():
                 self.done = True
                 return self.observation, self.reward_dictionary['win'], self.done, {}
-            return self.observation, self.reward_dictionary['touched'], self.done, {}
+            if self._check_proximal_hit(action):
+                return self.observation, self.reward_dictionary['touched_adjacent'], self.done, truncated, {}
+            
+            return self.observation, self.reward_dictionary['touched'], self.done, truncated, {}
 
         # didn't hit a ship
         # first check if we chose a cell we already chose before
         
         # repeat cell marked as missed
         elif self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] == 1:
-            return self.observation, self.reward_dictionary['repeat_missed'], self.done, {}
+            return self.observation, self.reward_dictionary['repeat_missed'], self.done, truncated, {}
 
         # repeat cell marked as hit 
         elif self.observation[CHANNEL_MAP.HIT.value, action.x, action.y] == 1:
-            return self.observation, self.reward_dictionary['repeat_touched'], self.done, {}
+            return self.observation, self.reward_dictionary['repeat_touched'], self.done, truncated, {}
 
         # Missed (Action not repeated and boat(s) not touched)
         else:
             self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] = 1
             self.observation[CHANNEL_MAP.LEGAL_MOVE.value, action.x, action.y] = 1
             
-            return self.observation, self.reward_dictionary['missed'], self.done, {}
+            return self.observation, self.reward_dictionary['missed'], self.done, truncated, {}
 
     def reset(self, seed=None, options=None) -> np.ndarray:
         self._set_board()

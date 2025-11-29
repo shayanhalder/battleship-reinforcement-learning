@@ -12,9 +12,9 @@ Ship = namedtuple('Ship', ['min_x', 'max_x', 'min_y', 'max_y'])
 Action = namedtuple('Action', ['x', 'y'])
 
 class CHANNEL_MAP(Enum):
-    MISSED = 0
-    HIT = 1
-    LEGAL_MOVE = 2
+    MISSED = 0 # 0 = not missed, 1 = missed
+    HIT = 1 # 0 = not hit, 1 = hit
+    LEGAL_MOVE = 2 # 0 = legal move/unknown cell, 1 = illegal move/revealed cell
 
 def is_notebook():
     """Helper used to change the way the environment in rendered"""
@@ -43,10 +43,6 @@ class BattleshipEnv(gymnasium.Env):
         self.board_generated = None  # Hidden state generated and left not updated (for debugging purposes)
         self.observation = None  # the observation is a (3, n, m) matrix
         self.NUM_CHANNELS = 3
-        # channels: 
-            # 0 - missed (0 = not missed, 1 = missed)
-            # 1 - hit (0 = not hit, 1 = hit)
-            # 2 - legal moves (0 = legal, 1 = illegal)
         
         self.done = None
         self.step_count = None
@@ -89,7 +85,8 @@ class BattleshipEnv(gymnasium.Env):
         if isinstance(raw_action, int) or isinstance(raw_action, np.int64):
             assert (0 <= raw_action < self.board_size[0]*self.board_size[1]),\
                 "Invalid action (The encoded action is outside of the limits)"
-            action = Action(x=raw_action % self.board_size[0], y=raw_action // self.board_size[0])
+            # action = Action(x=raw_action % self.board_size[0], y=raw_action // self.board_size[0])
+            action = Action(x=raw_action // self.board_size[1], y=raw_action % self.board_size[1])
 
         elif isinstance(raw_action, tuple):
             assert (0 <= raw_action[0] < self.board_size[0] and 0 <= raw_action[1] < self.board_size[1]),\
@@ -116,7 +113,7 @@ class BattleshipEnv(gymnasium.Env):
             # Win (No boat left)
             if not self.board.any():
                 self.done = True
-                return self.observation, self.reward_dictionary['win'], self.done, {}
+                return self.observation, self.reward_dictionary['win'], self.done, truncated, {}
             if self._check_proximal_hit(action):
                 return self.observation, self.reward_dictionary['proximal_hit'], self.done, truncated, {}
             

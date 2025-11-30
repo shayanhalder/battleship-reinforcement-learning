@@ -12,9 +12,9 @@ Ship = namedtuple('Ship', ['min_x', 'max_x', 'min_y', 'max_y'])
 Action = namedtuple('Action', ['x', 'y'])
 
 class CHANNEL_MAP(Enum):
-    MISSED = 0
-    HIT = 1
-    LEGAL_MOVE = 2
+    MISSED = 0 # 0 = not missed, 1 = missed
+    HIT = 1 # 0 = not hit, 1 = hit
+    LEGAL_MOVE = 2 # 0 = legal move/unknown cell, 1 = illegal move/revealed cell
 
 def is_notebook():
     """Helper used to change the way the environment in rendered"""
@@ -43,10 +43,6 @@ class BattleshipEnv(gymnasium.Env):
         self.board_generated = None  # Hidden state generated and left not updated (for debugging purposes)
         self.observation = None  # the observation is a (3, n, m) matrix
         self.NUM_CHANNELS = 3
-        # channels: 
-            # 0 - missed (0 = not missed, 1 = missed)
-            # 1 - hit (0 = not hit, 1 = hit)
-            # 2 - legal moves (0 = legal, 1 = illegal)
         
         self.done = None
         self.step_count = None
@@ -54,11 +50,12 @@ class BattleshipEnv(gymnasium.Env):
 
         reward_dictionary = {} if reward_dictionary is None else reward_dictionary
         default_reward_dictionary = reward_dictionary or {  # todo further tuning of the rewards required
-             'missed': -1.0,
-            'repeat_missed': -5.0,
-            'hit': 1.0,
+            'win': 10,
+            'missed': -0.2,
+            'hit': 1,
             'proximal_hit': 3.0,
-            'repeat_hit': -5.0,
+            'repeat_missed': -1,
+            'repeat_touched': -1,
             'sunk_ship_bonus': 5.0
         }
         
@@ -70,11 +67,26 @@ class BattleshipEnv(gymnasium.Env):
     def get_original_board(self) -> np.ndarray:
         return self.board_generated  
     
-    def step(self, raw_action: Union[int, tuple]) -> Tuple[np.ndarray, int, bool, dict]:        
-        if isinstance(raw_action, int):
+    def _in_horizontal_bounds(self, x: int) -> bool:
+        return 0 <= x < self.board_size[0]
+    
+    def _in_vertical_bounds(self, y: int) -> bool:
+        return 0 <= y < self.board_size[1]
+    
+    def _check_proximal_hit(self, action: tuple[int, int]) -> bool: 
+        return (
+            (self._in_horizontal_bounds(action.x - 1) and self.observation[CHANNEL_MAP.HIT.value, action.x - 1, action.y] == 1) or
+            (self._in_horizontal_bounds(action.x + 1) and self.observation[CHANNEL_MAP.HIT.value, action.x + 1, action.y] == 1) or
+            (self._in_vertical_bounds(action.y - 1) and self.observation[CHANNEL_MAP.HIT.value, action.x, action.y - 1] == 1) or
+            (self._in_vertical_bounds(action.y + 1) and self.observation[CHANNEL_MAP.HIT.value, action.x, action.y + 1] == 1)
+        )
+    
+    def step(self, raw_action: Union[int, tuple]) -> Tuple[np.ndarray, int, bool, dict]:
+        if isinstance(raw_action, int) or isinstance(raw_action, np.int64):
             assert (0 <= raw_action < self.board_size[0]*self.board_size[1]),\
                 "Invalid action (The encoded action is outside of the limits)"
-            action = Action(x=raw_action % self.board_size[0], y=raw_action // self.board_size[0])
+            # action = Action(x=raw_action % self.board_size[0], y=raw_action // self.board_size[0])
+            action = Action(x=raw_action // self.board_size[1], y=raw_action % self.board_size[1])
 
         elif isinstance(raw_action, tuple):
             assert (0 <= raw_action[0] < self.board_size[0] and 0 <= raw_action[1] < self.board_size[1]),\
@@ -91,6 +103,7 @@ class BattleshipEnv(gymnasium.Env):
             self.done = True
 
         # Touched (board[x, y] == 1)
+        truncated = False
         
         if self.board[action.x, action.y] == 1: # hit ship
             self.board[action.x, action.y] = 0
@@ -100,26 +113,29 @@ class BattleshipEnv(gymnasium.Env):
             # Win (No boat left)
             if not self.board.any():
                 self.done = True
-                return self.observation, self.reward_dictionary['win'], self.done, {}
-            return self.observation, self.reward_dictionary['touched'], self.done, {}
+                return self.observation, self.reward_dictionary['win'], self.done, truncated, {}
+            if self._check_proximal_hit(action):
+                return self.observation, self.reward_dictionary['proximal_hit'], self.done, truncated, {}
+            
+            return self.observation, self.reward_dictionary['hit'], self.done, truncated, {}
 
         # didn't hit a ship
         # first check if we chose a cell we already chose before
         
         # repeat cell marked as missed
         elif self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] == 1:
-            return self.observation, self.reward_dictionary['repeat_missed'], self.done, {}
+            return self.observation, self.reward_dictionary['repeat_missed'], self.done, truncated, {}
 
         # repeat cell marked as hit 
         elif self.observation[CHANNEL_MAP.HIT.value, action.x, action.y] == 1:
-            return self.observation, self.reward_dictionary['repeat_touched'], self.done, {}
+            return self.observation, self.reward_dictionary['repeat_touched'], self.done, truncated, {}
 
         # Missed (Action not repeated and boat(s) not touched)
         else:
             self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] = 1
             self.observation[CHANNEL_MAP.LEGAL_MOVE.value, action.x, action.y] = 1
             
-            return self.observation, self.reward_dictionary['missed'], self.done, {}
+            return self.observation, self.reward_dictionary['missed'], self.done, truncated, {}
 
     def reset(self, seed=None, options=None) -> np.ndarray:
         self._set_board()

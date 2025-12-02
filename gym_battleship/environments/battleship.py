@@ -33,7 +33,7 @@ class BattleshipEnv(gymnasium.Env):
     def __init__(self,
                  board_size: Tuple = None,
                  ship_sizes: dict = None,
-                 episode_steps: int = 100,
+                 episode_steps: int = 110,
                  reward_dictionary: Optional[dict] = None):
 
         self.ship_sizes = ship_sizes or {5: 1, 4: 1, 3: 2, 2: 1}

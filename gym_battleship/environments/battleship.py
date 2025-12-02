@@ -50,13 +50,13 @@ class BattleshipEnv(gymnasium.Env):
 
         reward_dictionary = {} if reward_dictionary is None else reward_dictionary
         default_reward_dictionary = reward_dictionary or {  # todo further tuning of the rewards required
-            'win': 10,
+            'win': 100,
+            'lose': -30,
             'missed': -0.2,
-            'hit': 1,
-            'proximal_hit': 3.0,
-            'repeat_missed': -1,
-            'repeat_touched': -1,
-            'sunk_ship_bonus': 5.0
+            'hit': 5,
+            'proximal_hit': 20,
+            'repeat_missed': -20,
+            'repeat_hit': -3,
         }
         
         self.reward_dictionary = {key: reward_dictionary.get(key, default_reward_dictionary[key]) for key in default_reward_dictionary.keys()}
@@ -98,18 +98,22 @@ class BattleshipEnv(gymnasium.Env):
 
         self.step_count += 1
 
+        truncated = False
+
         # Check if the game is done (if true, the current step is the "last step")
         if self.step_count >= self.episode_steps:
-            self.done = True
+            self.done = False
+            truncated = True
 
-        # Touched (board[x, y] == 1)
-        truncated = False
+        
         
         if self.board[action.x, action.y] == 1: # hit ship
             self.board[action.x, action.y] = 0
             self.observation[CHANNEL_MAP.HIT.value, action.x, action.y] = 1
             self.observation[CHANNEL_MAP.LEGAL_MOVE.value, action.x, action.y] = 1
             
+            if truncated:
+                return self.observation, self.reward_dictionary['lose'], self.done, truncated, {}
             # Win (No boat left)
             if not self.board.any():
                 self.done = True
@@ -119,23 +123,23 @@ class BattleshipEnv(gymnasium.Env):
             
             return self.observation, self.reward_dictionary['hit'], self.done, truncated, {}
 
-        # didn't hit a ship
-        # first check if we chose a cell we already chose before
-        
-        # repeat cell marked as missed
-        elif self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] == 1:
-            return self.observation, self.reward_dictionary['repeat_missed'], self.done, truncated, {}
-
-        # repeat cell marked as hit 
-        elif self.observation[CHANNEL_MAP.HIT.value, action.x, action.y] == 1:
-            return self.observation, self.reward_dictionary['repeat_touched'], self.done, truncated, {}
-
-        # Missed (Action not repeated and boat(s) not touched)
         else:
-            self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] = 1
-            self.observation[CHANNEL_MAP.LEGAL_MOVE.value, action.x, action.y] = 1
+            if truncated:
+                return self.observation, self.reward_dictionary['lose'], self.done, truncated, {}
             
-            return self.observation, self.reward_dictionary['missed'], self.done, truncated, {}
+            if self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] == 1:
+                return self.observation, self.reward_dictionary['repeat_missed'], self.done, truncated, {}
+
+            # repeat cell marked as hit 
+            elif self.observation[CHANNEL_MAP.HIT.value, action.x, action.y] == 1:
+                return self.observation, self.reward_dictionary['repeat_hit'], self.done, truncated, {}
+
+            # Missed (Action not repeated and boat(s) not touched)
+            else:
+                self.observation[CHANNEL_MAP.MISSED.value, action.x, action.y] = 1
+                self.observation[CHANNEL_MAP.LEGAL_MOVE.value, action.x, action.y] = 1
+                
+                return self.observation, self.reward_dictionary['missed'], self.done, truncated, {}
 
     def reset(self, seed=None, options=None) -> np.ndarray:
         self._set_board()

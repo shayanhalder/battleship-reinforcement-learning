@@ -8,7 +8,7 @@ class RandomAgent:
         self.skip_invalid_actions = skip_invalid_actions
         self.taken_actions = set()
         
-    def predict(self) -> int: 
+    def predict(self, obs) -> int: 
         action = random.randint(0, 99)
         while self.skip_invalid_actions and action in self.taken_actions: 
             action = random.randint(0, 99)

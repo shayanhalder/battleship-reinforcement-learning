@@ -7,7 +7,9 @@ from typing import Tuple
 from typing import Optional
 from collections import namedtuple
 from enum import Enum
-
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+        
 Ship = namedtuple('Ship', ['min_x', 'max_x', 'min_y', 'max_y'])
 Action = namedtuple('Action', ['x', 'y'])
 
@@ -180,12 +182,55 @@ class BattleshipEnv(gymnasium.Env):
         board = np.empty(self.board_size, dtype=str)
         board[self.observation[CHANNEL_MAP.MISSED.value] != 0] = '⚫'
         board[self.observation[CHANNEL_MAP.HIT.value] != 0] = '❌'
+        
+        if mode == 'image':
+            return self._render_image(board)
+        
         self._render(board)
+
 
     def render_board_generated(self):
         board = np.empty(self.board_size, dtype=str)
         board[self.board_generated != 0] = '⬛'
         self._render(board)
+        
+    @staticmethod
+    def _render_image(board, symbol='⬜'):
+        num_rows, num_columns = board.shape
+        fig, ax = plt.subplots(figsize=(8, 8))
+        color_map = {'⬜': 'lightgray', '⚫': 'blue', '❌': 'red', '⬛': 'black'}
+        
+        for i in range(num_rows):
+            for j in range(num_columns):
+                cell_value = board[i, j] if board[i, j] else symbol
+                color = color_map.get(cell_value, 'white')
+                rect = mpatches.Rectangle((j, num_rows - i - 1), 1, 1, 
+                                        linewidth=1, edgecolor='black', 
+                                        facecolor=color)
+                ax.add_patch(rect)
+                
+                ax.text(j + 0.5, num_rows - i - 0.5, cell_value,
+                    ha='center', va='center', fontsize=16)
+        
+        ax.set_xlim(0, num_columns)
+        ax.set_ylim(0, num_rows)
+        ax.set_aspect('equal')
+        
+        ax.set_xticks(np.arange(num_columns) + 0.5)
+        ax.set_yticks(np.arange(num_rows) + 0.5)
+        ax.set_xticklabels([chr(i) for i in range(ord('A'), ord('A') + num_columns)])
+        ax.set_yticklabels(range(num_rows, 0, -1))
+        
+        ax.tick_params(length=0)
+        ax.set_title('Battleship Board')
+        
+        fig.canvas.draw()
+        image = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+        image = image.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+        image = image[:, :, :3]
+        
+        plt.close(fig)
+        return image
 
     @staticmethod
     def _render(board, symbol='⬜'):

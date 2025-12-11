@@ -49,7 +49,7 @@ Run the cells sequentially and the evaluation graphs (number of moves to win, hi
 
 For DQN, we trained 10 models with different hyperparameters and the best model was `dqn_models/dqn_model_9/dqn-9` so that one will be used. The evaluation graphs will be saved to `dqn_models/final_model`. The video demo GIF will be saved to `dqn_models/video-demos/dqn_final_model_video.gif`
 
-For PPO, they will be saved to `ppo_models`
+For PPO, they will be saved to `ppo_models`. The final model, evalutation visuals, and the recording are all saved in this folder.
 
 For REINFORCE, they will be saved to ``
 
@@ -62,5 +62,6 @@ For REINFORCE, they will be saved to ``
 
 **NOTE: training all 10 DQN models from scratch will take ~4-5 hours**
 
-
+### PPO
+`ppo.ipynb` contains the training pipeline for the final PPO model. To train and evaluate the model from scratch, run the cells in sequential order. 
 

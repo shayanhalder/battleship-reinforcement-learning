@@ -9,4 +9,4 @@ shimmy
 matplotlib
 pandas
 Pillow
-
+ImageIO

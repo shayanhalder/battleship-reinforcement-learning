@@ -29,6 +29,7 @@ class HeuristicAgent:
         self.last_action = None
         self.last_hit = None
         self.current_hunt = None
+        self.num_steps = 0
             # {
             #     origin: int, the original hit action that started the hunt
             #     direction: "(-1, 0) | (1, 0) | (0, -1) | (0, 1) | None", the direction we determine the ship to be
@@ -39,10 +40,8 @@ class HeuristicAgent:
         
         
     def _get_random_valid_action(self) -> int:
-        action = random.randint(0, 99)
-        while self.skip_invalid_actions and action in self.taken_actions: 
-            action = random.randint(0, 99)
-        
+        valid_actions = [ i for i in range(100) if i not in self.taken_actions ]
+        action = random.choice(valid_actions)
         self.taken_actions.add(action)
         
         return action, None
@@ -92,10 +91,10 @@ class HeuristicAgent:
     def predict(self, obs) -> int:
         self.prev_obs = self.curr_obs
         self.curr_obs = obs
+        self.num_steps += 1
         
         if self.last_action is None: # edge case for first move
             action, _ = self._get_random_valid_action()
-            self.taken_actions.add(action)
             self.last_action = action
             return action, None
         
@@ -121,14 +120,14 @@ class HeuristicAgent:
                 self.logger.debug(f"Current hunt: {self.current_hunt}")
                 self.logger.debug(f"Choosing random action to determine direction: {action}")
                 return action, None
-            else: 
+            else: # we've determined the direction
                 direction = self.current_hunt['direction']
                 self.logger.debug(f"Direction for current hunt is: {direction}")
                 last_x, last_y = self.last_hit // 10, self.last_hit % 10
                 next_x, next_y = last_x + direction[0], last_y + direction[1]
+                action = next_x * 10 + next_y
                 
-                if self._valid_action(next_x, next_y):
-                    action = next_x * 10 + next_y
+                if self._valid_action(next_x, next_y) and action not in self.taken_actions:
                     self.taken_actions.add(action)
                     self.last_action = action
                     self.logger.debug(f"Choosing action: {action}")
@@ -140,7 +139,7 @@ class HeuristicAgent:
                         # try the opposite direction from origin
                         origin_x, origin_y = self.current_hunt['origin'] // 10, self.current_hunt['origin'] % 10
                         opp_x, opp_y = origin_x - direction[0], origin_y - direction[1]
-                        if self._valid_action(opp_x, opp_y):
+                        if self._valid_action(opp_x, opp_y) and (opp_x * 10 + opp_y) not in self.taken_actions:
                             action = opp_x * 10 + opp_y
                             self.taken_actions.add(action)
                             self.last_action = action
@@ -151,7 +150,6 @@ class HeuristicAgent:
                             self.logger.debug("End 2 reached for current hunt.")
                             self.current_hunt = None
                             action, _ = self._get_random_valid_action()
-                            self.taken_actions.add(action)
                             self.last_action = action
                             self.logger.debug(f"No valid moves left in current hunt, choosing random action: {action}")
                             return action, None
@@ -160,14 +158,13 @@ class HeuristicAgent:
                         self.current_hunt = None
                         self.logger.debug("End 2 reached for current hunt.")
                         action, _ = self._get_random_valid_action()
-                        self.taken_actions.add(action)
                         self.last_action = action
                         self.logger.debug(f"No valid moves left in current hunt, choosing random action: {action}")
                         return action, None 
         
         self.logger.debug("No current hunt, choosing random valid action...")
+        self.current_hunt = None
         action, _ = self._get_random_valid_action()
-        self.taken_actions.add(action)
         self.last_action = action
         return action, None
 

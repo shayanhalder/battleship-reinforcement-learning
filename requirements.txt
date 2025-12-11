@@ -3,4 +3,10 @@ setuptools
 numpy
 torch
 stable-baselines3
+sb3-contrib
+seaborn
+shimmy
+matplotlib
+pandas
+Pillow
 

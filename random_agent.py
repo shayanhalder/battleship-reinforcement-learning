@@ -9,8 +9,10 @@ class RandomAgent:
         self.taken_actions = set()
         
     def predict(self, obs) -> int: 
-        action = random.randint(0, 99)
-        while self.skip_invalid_actions and action in self.taken_actions: 
+        legal_moves = [ i for i in range(100) if i not in self.taken_actions ]
+        if self.skip_invalid_actions:
+            action = random.choice(legal_moves)
+        else:
             action = random.randint(0, 99)
         
         self.taken_actions.add(action)

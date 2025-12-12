@@ -1,0 +1,7 @@
+-----------------------------
+REINFORCE Model Results:
+  Win Rate: 100.00%
+  Avg Moves to Win: 95.32
+  Avg Steps (All Games): 95.32
+  Avg Reward: 308.34
+  Avg Hit/Miss Ratio: 0.22

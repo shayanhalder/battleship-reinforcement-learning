@@ -52,7 +52,7 @@ For DQN, we trained 10 models with different hyperparameters and the best model 
 
 For PPO, they will be saved to `ppo_models`. The final model, evalutation visuals, and the recording are all saved in this folder.
 
-For REINFORCE, they will be saved to ``
+For REINFORCE, they will be saved to `reinforce_models`, including a trained model, plots, and generated gameplay recordings.
 
 **NOTE: The DQN model file size was too large to store on GitHub, so the `project.ipynb` notebook will automatically download it from Git LFS (Large File Storage) before running the evaluation code.** 
 
@@ -69,4 +69,7 @@ The final DQN model and its training curves will be saved to `dqn_models/final_m
 
 ### PPO
 `ppo.ipynb` contains the training pipeline for the final PPO model. To train and evaluate the model from scratch, run the cells in sequential order. 
+
+### REINFORCE
+`reinforce.ipynb` containes the training pipeline for the reinforce policy-gradient model. Running this notebook trains the agent and saves the final policy weights to `reinforce_model/reinforce_policy.pt`.
 

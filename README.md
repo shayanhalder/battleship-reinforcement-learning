@@ -47,7 +47,7 @@ The code cells for each of the models are separated by section and automatically
 
 Run the cells sequentially and the evaluation graphs (number of moves to win, hit-to-miss ratio, action distribution) will be displayed in the notebook and also saved to the specified directory. 
 
-For DQN, we trained 10 models with different hyperparameters and the best model was `dqn_models/dqn_model_9/dqn-9` so that one will be used. The evaluation graphs will be saved to `dqn_models/final_model`. The video demo GIF will be saved to `dqn_models/video-demos/dqn_final_model_video.gif`
+For DQN, we trained 10 models with different hyperparameters and the best model was `dqn_models/dqn_model_9/dqn-9` so that one will be used. The evaluation graphs and video demo GIF will be saved to `dqn_models/final_model`.
 
 For PPO, they will be saved to `ppo_models`. The final model, evalutation visuals, and the recording are all saved in this folder.
 

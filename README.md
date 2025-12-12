@@ -58,7 +58,9 @@ For REINFORCE, they will be saved to ``
 ## Model Training Pipeline
 
 ### DQN 
-`dqn_pipeline.ipynb` contains the training pipeline for all 10 of the DQN models. By default, all the hyperparameter sets are commented out except the one for the final DQN model we used for evaluation (dqn-9). Run all the cells sequentially to train the model from scratch and evaluate it. 
+`dqn_pipeline.ipynb` contains the training pipeline for our DQN models. By default, running this notebook will only train the best hyperparameter set we found. 
+We include all 10 hyperparameter sets that we tried, but all of them are commented 
+out except the final set we decided to use, which was the 9th one in the `hyperparameters` dictionary. Run all the cells sequentially to train the model from scratch and evaluate it. 
 
 **NOTE: training all 10 DQN models from scratch will take ~4-5 hours**
 

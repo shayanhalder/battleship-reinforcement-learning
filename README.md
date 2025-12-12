@@ -60,9 +60,11 @@ For REINFORCE, they will be saved to ``
 ### DQN 
 `dqn_pipeline.ipynb` contains the training pipeline for our DQN models. By default, running this notebook will only train the best hyperparameter set we found. 
 We include all 10 hyperparameter sets that we tried, but all of them are commented 
-out except the final set we decided to use, which was the 9th one in the `hyperparameters` dictionary. Run all the cells sequentially to train the model from scratch and evaluate it. 
+out except the final set we decided to use, which is in the `hyperparameters` dictionary. Run all the cells sequentially to train the model from scratch and evaluate it. 
 
-**NOTE: training all 10 DQN models from scratch will take ~4-5 hours**
+The final DQN model and its training curves will be saved to `dqn_models/final_model`.
+
+**NOTE: training this model from scratch took ~1 hour on a 2020 M1 Macbook Air**
 
 ### PPO
 `ppo.ipynb` contains the training pipeline for the final PPO model. To train and evaluate the model from scratch, run the cells in sequential order. 

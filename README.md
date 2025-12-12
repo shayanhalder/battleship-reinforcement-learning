@@ -39,7 +39,8 @@ Now install the dependencies with
 
 ## Model Evaluation Pipeline
 
-`project.ipynb` contains the evaluation pipeline for each RL model (DQN, PPO, REINFORCE). 
+`project.ipynb` contains only the evaluation pipeline for each RL model (DQN, PPO, REINFORCE). To train the models from scratch,
+go to the [Model Training Pipeline](#model-training-pipeline) section. 
 
 Open `project.ipynb` with VS Code (or your preferred Jupyter Notebook editor) and select `venv` as the Python kernel in the top right (should be Python3.10).
 

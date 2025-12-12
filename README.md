@@ -71,5 +71,5 @@ The final DQN model and its training curves will be saved to `dqn_models/final_m
 `ppo.ipynb` contains the training pipeline for the final PPO model. To train and evaluate the model from scratch, run the cells in sequential order. 
 
 ### REINFORCE
-`reinforce.ipynb` containes the training pipeline for the reinforce policy-gradient model. Running this notebook trains the agent and saves the final policy weights to `reinforce_model/reinforce_policy.pt`.
+`reinforce.ipynb` contains the training pipeline for the reinforce policy-gradient model. Running this notebook trains the agent and saves the final policy weights to `reinforce_models/reinforce_policy.pt`.
 
